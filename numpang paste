@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+"""
+Script to validate Telegram session string and get user info
+"""
+import asyncio
+import sys
+from telethon import TelegramClient
+from telethon.sessions import StringSession
+
+async def validate_session(api_id, api_hash, session_string):
+    """Validate session string and return user info"""
+    client = None
+    try:
+        client = TelegramClient(StringSession(session_string), api_id, api_hash)
+        
+        await client.start()
+        me = await client.get_me()
+        
+        user_info = {
+            'user_id': me.id,
+            'username': me.username or f"User{me.id}",
+            'first_name': me.first_name or "",
+            'phone': me.phone or "",
+            'valid': True
+        }
+        
+        return user_info
+        
+    except Exception as e:
+        return {
+            'valid': False,
+            'error': str(e)
+        }
+    finally:
+        if client:
+            await client.disconnect()
+
+def main():
+    if len(sys.argv) != 4:
+        print("Usage: python validate_session.py <api_id> <api_hash> <session_string>")
+        sys.exit(1)
+    
+    api_id = int(sys.argv[1])
+    api_hash = sys.argv[2]
+    session_string = sys.argv[3]
+    
+    result = asyncio.run(validate_session(api_id, api_hash, session_string))
+    
+    if result['valid']:
+        print(f"SUCCESS:{result['user_id']}:{result['username']}:{result['first_name']}:{result['phone']}")
+    else:
+        print(f"ERROR:{result['error']}")
+
+if __name__ == "__main__":
+    main()
